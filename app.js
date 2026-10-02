@@ -74,6 +74,97 @@ const PRESETS = {
       }
     ]
   },
+  swot_analysis: {
+    id: "n0",
+    text: "SWOT 비즈니스 전략",
+    children: [
+      {
+        id: "n1",
+        text: "내부 역량 분석",
+        children: [
+          { id: "n11", text: "강점 (S): 독자 기술력, 브랜드 신뢰도", children: [] },
+          { id: "n12", text: "약점 (W): 초기 자본력 부족, 해외 네트워크 미비", children: [] }
+        ]
+      },
+      {
+        id: "n2",
+        text: "외부 환경 분석",
+        children: [
+          { id: "n21", text: "기회 (O): 비대면 에듀테크 시장 급성장", children: [] },
+          { id: "n22", text: "위협 (T): 빅테크 기업의 시장 진입, 규제 강화", children: [] }
+        ]
+      },
+      {
+        id: "n3",
+        text: "교차 실행 전략",
+        children: [
+          { id: "n31", text: "SO 전략: 기술력 기반 시장 선점", children: [] },
+          { id: "n32", text: "WT 전략: 틈새시장 집중 및 제휴 방어", children: [] }
+        ]
+      }
+    ]
+  },
+  root_cause_5whys: {
+    id: "n0",
+    text: "현상: 서버 응답 지연 발생",
+    children: [
+      {
+        id: "n1",
+        text: "Why 1: DB 커넥션 풀 고갈",
+        children: [
+          {
+            id: "n11",
+            text: "Why 2: 슬로우 쿼리 대량 누적",
+            children: [
+              {
+                id: "n111",
+                text: "Why 3: 인덱스 누락된 검색 쿼리 급증",
+                children: [
+                  {
+                    id: "n1111",
+                    text: "Why 4: 배포 전 쿼리 성능 검증 생략",
+                    children: [
+                      { id: "n11111", text: "Why 5 (근본 원인): CI/CD 성능 테스트 파이프라인 부재", children: [] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  okr_goal: {
+    id: "n0",
+    text: "Q4 Objective: 글로벌 에듀테크 1위 달성",
+    children: [
+      {
+        id: "n1",
+        text: "KR 1: 월간 활성 사용자(MAU) 100만 명 돌파",
+        children: [
+          { id: "n11", text: "SEO 최적화 및 3,000단어 DB 오픈", children: [] },
+          { id: "n12", text: "모바일 반응형 완결(가로스크롤 0px)", children: [] }
+        ]
+      },
+      {
+        id: "n2",
+        text: "KR 2: 학습 완독률(Completion Rate) 85% 달성",
+        children: [
+          { id: "n21", text: "에빙하우스 망각곡선 복습 푸시", children: [] },
+          { id: "n22", text: "Day별 40단어 성취 뱃지 시스템", children: [] }
+        ]
+      },
+      {
+        id: "n3",
+        text: "KR 3: 고객 순추천지수(NPS) 75점 이상 유지",
+        children: [
+          { id: "n31", text: "100% 무광고 깔끔 UI 유지", children: [] },
+          { id: "n32", text: "초고속 0ms 로컬 브라우저 연산", children: [] }
+        ]
+      }
+    ]
+  },
   empty: {
     id: "n0",
     text: "중심 아이디어",
