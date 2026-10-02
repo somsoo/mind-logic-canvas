@@ -1,0 +1,8 @@
+{
+  "name": "인피니트 로직 트리 & 마인드 캔버스",
+  "short_name": "로직트리캔버스",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6"
+}
