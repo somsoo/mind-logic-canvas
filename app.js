@@ -189,7 +189,10 @@ class MindLogicCanvas {
     this.templateSelect = document.getElementById('templateSelect');
 
     this.initEvents();
-    this.render();
+    this.ensurePersistedStorage();
+    this.checkUrlHash().then(loaded => {
+      if (!loaded) this.render();
+    });
   }
 
   initEvents() {
@@ -214,6 +217,32 @@ class MindLogicCanvas {
       this.panY = 140;
       this.scale = 1.0;
       this.render();
+    });
+
+    // 🔗 URL 해시 무서버 공유
+    document.getElementById('shareTreeBtn').addEventListener('click', async () => {
+      await this.shareTreeUrl();
+    });
+
+    // 💾 JSON 저장
+    document.getElementById('exportTreeBtn').addEventListener('click', () => {
+      this.exportTreeJson();
+    });
+
+    // 📂 JSON 불러오기
+    const fileInput = document.getElementById('treeFileInput');
+    document.getElementById('importTreeBtn').addEventListener('click', () => {
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        this.importTreeFile(e.target.files[0]);
+      }
+    });
+
+    // URL 해시 변경 감지
+    window.addEventListener('hashchange', () => {
+      this.checkUrlHash();
     });
 
     // Viewport Panning
@@ -443,6 +472,134 @@ class MindLogicCanvas {
   updateTransform() {
     this.nodesLayer.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.scale})`;
     this.svgLines.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.scale})`;
+  }
+
+  async ensurePersistedStorage() {
+    if (navigator.storage && navigator.storage.persist) {
+      const isPersisted = await navigator.storage.persisted();
+      if (!isPersisted) {
+        await navigator.storage.persist();
+      }
+    }
+  }
+
+  // 🔗 무서버 URL 상태 공유 (CompressionStream & Base64URL)
+  async shareTreeUrl() {
+    try {
+      const stateObj = {
+        title: "공유된 로직 트리",
+        root: this.root,
+        exportedAt: new Date().toISOString()
+      };
+
+      const jsonStr = JSON.stringify(stateObj);
+      const stream = new Blob([jsonStr]).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream('deflate'));
+      const response = await new Response(compressedStream);
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}#data=${base64}`;
+      await navigator.clipboard.writeText(shareUrl);
+      window.location.hash = `data=${base64}`;
+      alert("🎉 로직 트리 공유 링크가 클립보드에 복사되었습니다!\n\n서버 없이 URL 링크 하나로 누구나 동일한 트리를 즉시 확인하고 편집할 수 있습니다:\n" + shareUrl);
+    } catch (err) {
+      console.error(err);
+      alert("공유 링크 생성 중 오류가 발생했습니다: " + err.message);
+    }
+  }
+
+  // URL 해시 복원
+  async checkUrlHash() {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#data=')) return false;
+
+    try {
+      const base64 = hash.replace('#data=', '')
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const stream = new Blob([bytes]).stream();
+      const decompressedStream = stream.pipeThrough(new DecompressionStream('deflate'));
+      const response = await new Response(decompressedStream);
+      const jsonStr = await response.text();
+      const stateObj = JSON.parse(jsonStr);
+
+      if (stateObj && stateObj.root) {
+        this.root = stateObj.root;
+        this.selectedNodeId = this.root.id;
+        this.collapsedNodes.clear();
+        this.panX = 60;
+        this.panY = 140;
+        this.scale = 1.0;
+        this.render();
+        return true;
+      }
+    } catch (err) {
+      console.error("URL 해시 복원 실패:", err);
+    }
+    return false;
+  }
+
+  // 💾 JSON 표준 백업 다운로드
+  exportTreeJson() {
+    const backupData = {
+      schemaVersion: "1.0.0",
+      appIdentifier: "mind-logic-canvas",
+      exportedAt: new Date().toISOString(),
+      payload: {
+        root: this.root
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `logictree_backup_${dateStr}.json`;
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // 📂 JSON 파일 가져오기
+  importTreeFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        const rootNode = parsed.payload && parsed.payload.root ? parsed.payload.root : (parsed.id ? parsed : null);
+        if (rootNode) {
+          this.root = rootNode;
+          this.selectedNodeId = this.root.id;
+          this.collapsedNodes.clear();
+          this.panX = 60;
+          this.panY = 140;
+          this.scale = 1.0;
+          this.render();
+          alert(`📂 '${file.name}' 로직 트리를 성공적으로 불러왔습니다!`);
+        } else {
+          alert('지원되지 않는 로직 트리 JSON 형식입니다.');
+        }
+      } catch (err) {
+        alert('파일을 불러오는 중 오류가 발생했습니다: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
   }
 }
 
